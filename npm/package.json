@@ -1,0 +1,19 @@
+{
+  "name": "rosync-nodejs",
+  "version": "0.1.4",
+  "description": "Rosync",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "roblox",
+    "rosync"
+  ],
+  "author": "xynny",
+  "dependencies": {
+    "chokidar": "3.5.2",
+    "express": "4.17.2",
+    "nanocolors": "0.2.13"
+  }
+}
