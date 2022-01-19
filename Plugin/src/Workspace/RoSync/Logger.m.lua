@@ -1,0 +1,1 @@
+local LSMO=Game:service'LogService'.MessageOut;local Debugging=false;self={MessageOut=LSMO};function self.Log(...)print(('[Rosync]: %s'):format(...));end;function self.Error(...)warn(('[Rosync]: %s'):format(...));end;function self:Debug(...)if(Debugging)then warn(('[Rosync] (DEBUG): %s'):format(...));end;end;return(self);
