@@ -1,6 +1,6 @@
 {
   "name": "rosync-nodejs",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Rosync",
   "main": "index.js",
   "scripts": {
@@ -12,8 +12,9 @@
   ],
   "author": "xynny",
   "dependencies": {
-    "chokidar": "3.5.2",
-    "express": "4.17.2",
-    "nanocolors": "0.2.13"
+    "chokidar": "^3.5.2",
+    "express": "^4.17.2",
+    "md5": "^2.3.0",
+    "nanocolors": "^0.2.13"
   }
 }

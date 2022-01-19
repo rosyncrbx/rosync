@@ -1,4 +1,4 @@
-const Version='0.1.4';let CustomItems=[];const express=require('express');const chokidar=require('chokidar');const chalk=require('nanocolors');const fs=require('fs');const JSONEncode=JSON.stringify;const JSONDecode=JSON.parse;const GenerateProjectId=()=>{function GRDCFS(s){return(s.charAt(Math.floor(Math.random()*s.length)))};return Array.from({length:10}).map(()=>{return(GRDCFS('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'))}).join('');};const GenerateSessionId=()=>{function GRDCFS(s){return(s.charAt(Math.floor(Math.random()*s.length)))};return Array.from({length:10}).map(()=>{return(GRDCFS('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'))}).join('');};const SessionId=GenerateSessionId();const FileMap=new Map();const IdMap=new Map();let count=0;
+const Version='0.1.5';let CustomItems=[];const express=require('express');const chokidar=require('chokidar');const md5=require('md5');const chalk=require('nanocolors');const fs=require('fs');const JSONEncode=JSON.stringify;const JSONDecode=JSON.parse;const GenerateProjectId=()=>{function GRDCFS(s){return(s.charAt(Math.floor(Math.random()*s.length)))};return Array.from({length:10}).map(()=>{return(GRDCFS('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'))}).join('');};const GenerateSessionId=()=>{function GRDCFS(s){return(s.charAt(Math.floor(Math.random()*s.length)))};return Array.from({length:10}).map(()=>{return(GRDCFS('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'))}).join('');};const SessionId=GenerateSessionId();const FileMap=new Map();const IdMap=new Map();let count=0;let FilesDebounce=new Map();
 const ScanDirectories=(a)=>{let results=[];
 fs.readdirSync(a).forEach((b)=>{
 let c=fs.statSync(`${a}/${b}`);
@@ -93,8 +93,12 @@ Changes.push(['Deleted',a.Id]);
 return;
 };
 if(a.Type='ScriptUpdated'){
-RecentlySynced.set(IdMap.get(a.Id),Date.now());
+let hash=md5(a.Source);
+if(FilesDebounce.get(a.Id)===hash){
+}else{
+FilesDebounce.set(a.Id,hash);
 fs.writeFileSync(IdMap.get(a.Id),a.Source);
+};
 return;
 };
 });
@@ -121,16 +125,19 @@ if(WatcherReady&&(f.toLowerCase().endsWith('.lua')||f.toLowerCase().endsWith('.j
 //console.log(`${f.replace('src\\','')} added`);
 count++;Changes.push(['Added',`./${f.replace(/\\/g,'/')}`,count,fs.readFileSync(`./${f}`).toString()]);FileMap.set(`./${f.replace(/\\/g,'/')}`,count);IdMap.set(count,`./${f.replace(/\\/g,'/')}`);
 };
-if(WatcherReady&&f.toLowerCase().endsWith('config.ini')){ console.log(f)
+if(WatcherReady&&f.toLowerCase().endsWith('config.ini')){
 count++;Changes.push(['Added',`./${f.replace(/\\/g,'/').replace(/\/config.ini/gi,'')}`,count,fs.readFileSync(`./${f}`).toString(),true]);FileMap.set(`./${f.replace(/\\/g,'/').replace(/\/config.ini/gi,'')}`,count);IdMap.set(count,`./${f.replace(/\\/g,'/').replace(/\/config.ini/gi,'')}`);
 };
 });
 dirwatch.on('change',(f)=>{
 if(WatcherReady&&(f.toLowerCase().endsWith('.lua')||f.toLowerCase().endsWith('.json'))){
 //console.log(`${f.replace('src\\','')} changed`);
-if(Date.now()-RecentlySynced.get(`./${f.replace(/\\/g,'/')}`)>300){
+let source=fs.readFileSync(f);
+let hash=md5(source);
+let id=FileMap.get(`./${f.replace(/\\/g,'/')}`);
+if(FilesDebounce.get(id)===hash){
 }else{
-Changes.push(['Changed',`./${f.replace(/\\/g,'/')}`,FileMap.get(`./${f.replace(/\\/g,'/')}`),fs.readFileSync(`./${f}`).toString()]);
+Changes.push(['Changed',`./${f.replace(/\\/g,'/')}`,id,fs.readFileSync(`./${f}`).toString()]);
 };
 };
 if(WatcherReady&&f.toLowerCase().endsWith('config.ini')){
@@ -143,6 +150,8 @@ if(WatcherReady&&(f.toLowerCase().endsWith('.lua')||f.toLowerCase().endsWith('.j
 IdMap.delete(count);
 let FMC=FileMap.get(`./${f.replace(/\\/g,'/')}`);
 FileMap.delete(`./${f.replace(/\\/g,'/')}`);
+IdMap.delete(FMC);
+FilesDebounce.delete(FMC);
 Changes.push(['Deleted',FMC]);
 };
 if(WatcherReady&&f.toLowerCase().endsWith('config.ini')){
@@ -152,14 +161,14 @@ FileMap.delete(`./${f.replace(/\\/g,'/').replace(/\/config.ini/gi,'')}`);
 Changes.push(['Deleted',FMC]);
 };
 });
-dirwatch.on('unlinkDir',(f)=>{
+/*dirwatch.on('unlinkDir',(f)=>{
 if(WatcherReady&&FileMap.get(`${f.replace(/\\/g,'/')}`)){
 IdMap.delete(count);
 let FMC=FileMap.get(`${f.replace(/\\/g,'/')}`);
 FileMap.delete(`${f.replace(/\\/g,'/')}`);
 Changes.push(['Deleted',FMC]);
 };
-});
+});*/
 dirwatch.once('ready',()=>{WatcherReady=true;});
 }catch(e){
 console.error(chalk.red('It looks like something went wrong while trying to start the Rosync project.'));
@@ -196,7 +205,7 @@ return(new Promise(async(r)=>{
 try{
 if(!(fs.existsSync(`./project.rosync`)&&fs.existsSync(`./src`))){console.error(chalk.red('It looks like no Rosync project has been initialized here. Use the init function to create one.'));return;};
 let Locations=['Workspace','Players','Lighting','ReplicatedFirst','ReplicatedStorage','ServerScriptService','ServerStorage','StarterGui','StarterPack','StarterPlayer','StarterPlayer/StarterCharacterScripts','StarterPlayer/StarterPlayerScripts','Teams','SoundService','LocalizationService','TestService'];
-let Files=[['ServerScriptService/Test.m.lua','local module = {};\n-- This is an example module script. A .m.lua file creates a module script. Example Test.m.lua --\nreturn(module);\n'],['ServerScriptService/Test.c.lua','-- This is a example local script. A .c.lua file creates a local script. Example Test.c.lua --'],['ServerScriptService/Test.lua','-- This is a example script. A .lua file creates a script. Example Test.lua --']];
+let Files=[['ServerScriptService/README.lua','--[[\nThank you for using RoSync. If you have a feature request or a bug you would like to submit,\nGo to the official github and create an issue: https://github.com/xynnylol/rosync/issues\nIf you want to read the documentation feel free to do so here: https://xynnylol.github.io/rosync/docs/\nIf you have not used RoSync before I suggest that you read the documentation.\n]]']];
 Locations.forEach(d=>{try{fs.mkdirSync(`./src/${d}`);}catch{};});
 Files.forEach(f=>{try{fs.writeFileSync(`./src/${f[0]}`,f[1]);}catch{};});
 let NewData=JSONDecode(fs.readFileSync('./project.rosync'));
